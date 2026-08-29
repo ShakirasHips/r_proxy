@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/proxy",
+    "crates/r_proxy",
+    #"crates/ui",
+]
+resolver = "2"

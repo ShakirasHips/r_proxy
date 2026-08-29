@@ -1,0 +1,13 @@
+[[instances]]
+name = "Test"
+ttl = 30
+operating_mode = "Proxy"
+ingress_addresses = ["127.0.0.1:8080", "127.0.0.1:8081"]
+egress_addresses = ["127.0.0.1:9090"]
+
+[[instances]]
+name = "Test2"
+ttl = 30
+operating_mode = "Proxy"
+ingress_addresses = ["127.0.0.1:8082", "127.0.0.1:8083"]
+egress_addresses = ["127.0.0.1:9091"]

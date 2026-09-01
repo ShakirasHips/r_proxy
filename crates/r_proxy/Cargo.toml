@@ -9,3 +9,4 @@ ui = { path = "../ui" }
 outpost = { path = "../outpost" }
 anyhow = "1.0.104"
 tokio = { version = "1.53.1", features = ["rt", "rt-multi-thread", "macros"] }
+log = "0.4.33"

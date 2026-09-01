@@ -16,7 +16,7 @@ pub struct Outpost;
 
 impl Outpost{
     pub async fn start(health_prober : Arc<HealthProber>) {
-        tracing_subscriber::fmt::init();
+        // tracing_subscriber::fmt::init();
 
         let state = Arc::new(AppState {
             health_prober,

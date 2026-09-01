@@ -59,13 +59,13 @@ impl Proxy {
 
         for thread in self.egress_handles.drain(..) {
             if let Err(e) = thread.join() {
-                eprintln!("Thread join error: {:?}", e);
+                log::error!("Thread join error: {:?}", e);
             }
         }
 
         for thread in self.ingress_handles.drain(..) {
             if let Err(e) = thread.join() {
-                eprintln!("Thread join error: {:?}", e);
+                log::error!("Thread join error: {:?}", e);
             }
         }
 
@@ -79,7 +79,7 @@ impl Proxy {
             {
                 Ok(l) => l,
                 Err(e) => {
-                    eprintln!("{e:#}");
+                    log::error!("{e:#}");
                     return;
                 }
             };
@@ -96,7 +96,7 @@ impl Proxy {
                 Ok(s) => {
                     Self::spawn_connection_handler(s, ingress, ctx.clone());
                 }
-                Err(e) => eprintln!("incoming stream error: {e}"),
+                Err(e) => log::error!("incoming stream error: {e}"),
             }
         }
     }
@@ -110,12 +110,12 @@ impl Proxy {
             let out_streams = match Self::connect_egress(&ctx.egress_addresses, ctx.ttl) {
                 Ok(streams) => streams,
                 Err(e) => {
-                    eprintln!("egress connect error: {e:#}");
+                    log::error!("egress connect error: {e:#}");
                     return;
                 }
             };
             if let Err(e) = Self::handle(&stream, ingress, &out_streams, ctx) {
-                eprintln!("handle error: {e:#}");
+                log::error!("handle error: {e:#}");
             }
         })
     }

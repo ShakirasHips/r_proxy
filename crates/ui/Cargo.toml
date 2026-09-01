@@ -10,3 +10,8 @@ path = "src/ui.rs"
 [dependencies]
 crossterm = "0.29.0"
 ratatui = "0.30.2"
+tracing-appender = "0.2.5"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tracing = "0.1.44"
+log = "0.4.33"
+tui-logger = "0.18.3"

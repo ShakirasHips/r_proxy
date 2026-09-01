@@ -5,3 +5,5 @@ mod health_prober;
 mod proxy;
 
 pub use server::Server;
+
+pub use health_prober::HealthProber;

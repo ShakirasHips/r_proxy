@@ -1,7 +1,6 @@
 use crate::config::Config;
 use crate::health_prober::HealthProber;
 use crate::proxy::Proxy;
-use outpost::Outpost;
 use anyhow::{Context, Ok, Result, ensure};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -9,8 +8,7 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 pub struct Server {
     config: Config,
     proxies: Vec<Proxy>,
-    health_prober: Arc<HealthProber>,
-    outpost_handle: Option<tokio::task::JoinHandle<()>>,
+    pub health_prober: Arc<HealthProber>,
 }
 
 impl Server {
@@ -27,7 +25,6 @@ impl Server {
             config,
             proxies,
             health_prober,
-            outpost_handle : None
         })
     }
 
@@ -54,31 +51,10 @@ impl Server {
             );
         }
 
-        self.outpost_handle = Some(tokio::spawn(async {
-            Outpost::start().await
-        }));
-        // let health_printer = self.health_prober.clone();
-        // thread::spawn(move || {
-        //     loop {
-        //         health_printer.print();
-        //         thread::sleep(std::time::Duration::from_secs(1));
-        //     }
-        // });
-
         Ok(())
     }
 
-    pub async fn run(mut self) -> Result<()> {
-        println!("Press Enter to stop...");
-
-        // Wait for shutdown signal
-        let mut stdin = BufReader::new(tokio::io::stdin()).lines();
-        stdin.next_line().await.ok();
-
-        if let Some(handle) = self.outpost_handle.take() {
-            handle.abort();
-        }
-
+    pub async fn shutdown(mut self) -> Result<()> {
         for mut p in self.proxies.drain(..) {
             let _ = p.stop();
         }

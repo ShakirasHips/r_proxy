@@ -13,3 +13,5 @@ tracing-subscriber = "0.3.23"
 tracing = "0.1.44"
 routes = "0.1.0"
 chrono = { version = "0.4", features = ["serde"] }
+proxy = { path = "../proxy" }
+serde_json = "1.0.151"

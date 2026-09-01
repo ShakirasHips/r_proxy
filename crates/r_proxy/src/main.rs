@@ -1,13 +1,12 @@
-use proxy::Server;
-use ui::UI;
-use outpost::Outpost;
+mod app;
 use anyhow::Result;
+use crate::app::App;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut server = Server::build("./test.toml")?;
-    server.start()?;
-    server.run().await;
+    let mut app = App::default();
+    app.start().await;
+    app.run().await;
 
     Ok(())
 }

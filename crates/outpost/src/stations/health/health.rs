@@ -5,25 +5,31 @@ use axum::{
     Json, Router,
 };
 use std::sync::{atomic::Ordering, Arc};
-use crate::stations::health::model::{HealthEntry, HealthQuery};
-use crate::stations::health::state::HealthState;
+use proxy::HealthProber;
+use serde_json::json;
 
-async fn list_entries(
-    State(state): State<Arc<HealthState>>,
-    Query(params): Query<HealthQuery>,
-) -> Json<Vec<i32>> {
-    let entries = state.entries.lock().unwrap();
-
-    let filtered: Vec<i32> = entries
-        .iter()
-        .cloned()
-        .collect();
-
-    Json(filtered)
+async fn get_health_for_id(
+    State(state): State<Arc<HealthProber>>,
+    Path(id): Path<String>,
+) -> Json<serde_json::Value> {
+    match state.get_points(&id) {
+        Some(points) => Json(json!({ "id": id, "data_points": points })),
+        None => Json(json!({ "id": id, "data_points": [] })),
+    }
 }
 
-pub fn router(state: Arc<HealthState>) -> Router {
+async fn get_health_summary(State(prober): State<Arc<HealthProber>>) -> Json<serde_json::Value> {
+    let summary = prober.summary();
+    Json(json!({
+        "totals": summary.into_iter()
+            .map(|(id, total)| json!({ "id": id, "total_bytes_sent": total }))
+            .collect::<Vec<_>>()
+    }))
+}
+
+pub fn router(state: Arc<HealthProber>) -> Router {
     Router::new()
-        .route("/health/entries", get(list_entries))
+        .route("/health", get(get_health_summary))
+        .route("/health/{id}", get(get_health_for_id))
         .with_state(state)
 }

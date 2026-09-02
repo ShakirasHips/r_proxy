@@ -15,3 +15,4 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tracing = "0.1.44"
 log = "0.4.33"
 tui-logger = "0.18.3"
+proxy = { path = "../proxy" }

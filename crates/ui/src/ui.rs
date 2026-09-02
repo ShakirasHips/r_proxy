@@ -1,4 +1,5 @@
 use std::io::{self, Stdout};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event, KeyCode};
@@ -7,20 +8,22 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
-use ratatui::Terminal;
+use ratatui::widgets::{Block, Borders, Gauge, Paragraph, Row, Table};
+use ratatui::{Frame, Terminal};
 
 use tracing_subscriber::EnvFilter;
 use tui_logger::{TuiLoggerWidget, TuiWidgetState};
+use proxy::HealthProber;
 
 pub struct UI {
     started_at: Instant,
     tick_count: u64,
     load: u16,
-    log_guard : Option<tracing_appender::non_blocking::WorkerGuard>
+    log_guard : Option<tracing_appender::non_blocking::WorkerGuard>,
+    health_prober: Option<Arc<HealthProber>>,
 }
 
 impl UI {
@@ -30,6 +33,7 @@ impl UI {
             tick_count: 0,
             load: 10,
             log_guard : None,
+            health_prober : None
         }
     }
 
@@ -55,8 +59,9 @@ impl UI {
         }));
     }
 
-    pub fn run() -> io::Result<()> {
+    pub fn run(health_prober : Arc<HealthProber>) -> io::Result<()> {
         let mut app = UI::new();
+        app.health_prober = Some(health_prober);
         let mut terminal = Self::setup_terminal(&mut app)?;
         let result = Self::run_app(&mut app, &mut terminal);
         Self::restore_terminal(&mut terminal)?;
@@ -93,33 +98,58 @@ impl UI {
     }
 
     fn draw_ui(frame: &mut ratatui::Frame, app: &UI) {
-        let chunks = Layout::default()
+        let vertical_chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
             .constraints([
-                Constraint::Length(3), // title
-                Constraint::Length(3), // gauge
-                Constraint::Min(0),    // info block
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Ratio(1, 2),
             ])
             .split(frame.size());
+
+        let horizontal_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)])
+            .split(vertical_chunks[2]);
 
         // Title
         let title = Paragraph::new("Proxy stuff")
             .block(Block::default().borders(Borders::ALL).title("Demo"));
-        frame.render_widget(title, chunks[0]);
+        frame.render_widget(title, vertical_chunks[0]);
 
         let gauge = Gauge::default()
             .block(Block::default().borders(Borders::ALL).title("Load"))
             .gauge_style(Style::default().fg(Color::LightBlue))
             .percent(app.load);
-        frame.render_widget(gauge, chunks[1]);
+        frame.render_widget(gauge, vertical_chunks[1]);
 
         let state = TuiWidgetState::new().set_default_display_level(log::LevelFilter::Trace);
+
         let logs = TuiLoggerWidget::default()
             .block(Block::bordered().title("Logs"))
             .state(&state)
             .output_separator('|');
-        frame.render_widget(logs, chunks[2]);
+        frame.render_widget(logs, horizontal_chunks[1]);
+        Self::render_data_table(frame, horizontal_chunks[0], app);
+    }
+
+    fn render_data_table(frame: &mut Frame, area: Rect, app: &UI) {
+        let rows: Vec<Row> = app.health_prober.as_ref().unwrap().summary()
+            .iter()
+            .map(|(id, total)| {
+                let id = id.to_string();
+                let total = total.to_string();
+                Row::new(vec![id, total])
+            })
+            .collect();
+
+        let widths = [Constraint::Length(10), Constraint::Length(20)];
+        let table = Table::new(rows, widths)
+            .header(Row::new(vec!["ID", "Total Bytes Sent"]))
+            .block(Block::default().borders(Borders::ALL).title("Data"));
+
+        frame.render_widget(table, area);
     }
 
     fn setup_terminal(&mut self) -> io::Result<Terminal<CrosstermBackend<Stdout>>> {

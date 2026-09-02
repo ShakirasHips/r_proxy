@@ -12,12 +12,13 @@ pub struct App {
 
 impl App {
     pub async fn start(&mut self) -> anyhow::Result<()> {
-        self.ui_handle = Some(tokio::task::spawn_blocking(|| {
-            ui::UI::run();
-        }));
-
         let mut server = Server::build("./test.toml").unwrap();
         let prober = server.health_prober.clone();
+        let prober2 = server.health_prober.clone();
+        self.ui_handle = Some(tokio::task::spawn_blocking(|| {
+            ui::UI::run(prober2);
+        }));
+
         self.proxy_handle = Some(tokio::spawn(async move{
             server.start();
         }));

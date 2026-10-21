@@ -13,7 +13,7 @@ use std::{io, thread};
 struct ProxyContext {
     name: String,
     egress_addresses: Vec<SocketAddr>,
-    ttl: u64,
+    connect_timeout_secs: u64,
     shutdown_flag: AtomicBool,
     health_prober: Arc<HealthProber>,
 }
@@ -34,7 +34,7 @@ impl Proxy {
             ctx: Arc::new(ProxyContext {
                 name: instance.name.clone(),
                 egress_addresses: instance.egress_addresses.clone(),
-                ttl: instance.ttl,
+                connect_timeout_secs: instance.connect_timeout_secs,
                 shutdown_flag: AtomicBool::new(false),
                 health_prober,
             }),
@@ -107,7 +107,7 @@ impl Proxy {
         ctx: Arc<ProxyContext>,
     ) -> JoinHandle<()> {
         thread::spawn(move || {
-            let out_streams = match Self::connect_egress(&ctx.egress_addresses, ctx.ttl) {
+            let out_streams = match Self::connect_egress(&ctx.egress_addresses, ctx.connect_timeout_secs) {
                 Ok(streams) => streams,
                 Err(e) => {
                     log::error!("egress connect error: {e:#}");
@@ -120,11 +120,11 @@ impl Proxy {
         })
     }
 
-    fn connect_egress(egress_addresses: &[SocketAddr], ttl: u64) -> Result<Vec<TcpStream>> {
+    fn connect_egress(egress_addresses: &[SocketAddr], connect_timeout_secs: u64) -> Result<Vec<TcpStream>> {
         egress_addresses
             .iter()
             .map(|addr| {
-                let stream = TcpStream::connect_timeout(addr, Duration::from_secs(ttl))
+                let stream = TcpStream::connect_timeout(addr, Duration::from_secs(connect_timeout_secs))
                     .with_context(|| format!("failed to connect to {addr}"))?;
 
                 stream

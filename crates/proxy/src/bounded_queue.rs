@@ -9,8 +9,9 @@ pub struct BoundedQueue<T> {
 
 impl<T> BoundedQueue<T> {
     pub fn new(capacity: usize) -> BoundedQueue<T> {
+        assert!(capacity > 0, "BoundedQueue capacity must be greater than 0");
         BoundedQueue {
-            queue: VecDeque::new(),
+            queue: VecDeque::with_capacity(capacity),
             capacity,
         }
     }
@@ -37,7 +38,42 @@ impl<T> BoundedQueue<T> {
     }
 
     #[inline]
+    pub fn len(&self) -> usize {
+        self.queue.len()
+    }
+
+    #[inline]
     fn is_full(&self) -> bool {
-        self.capacity == self.queue.len()
+        self.queue.len() >= self.capacity
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_push_evicts_oldest_when_full() {
+        let mut q = BoundedQueue::new(3);
+        for i in 0..5 {
+            q.push(i);
+        }
+        assert_eq!(q.len(), 3);
+        assert_eq!(q.iter().copied().collect::<Vec<_>>(), vec![2, 3, 4]);
+    }
+
+    #[test]
+    fn test_drain() {
+        let mut q = BoundedQueue::new(3);
+        q.push(1);
+        q.push(2);
+        assert_eq!(q.drain(..).collect::<Vec<_>>(), vec![1, 2]);
+        assert_eq!(q.len(), 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_zero_capacity_panics() {
+        BoundedQueue::<i32>::new(0);
     }
 }

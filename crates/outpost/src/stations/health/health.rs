@@ -18,12 +18,7 @@ async fn get_health_for_id(
 }
 
 async fn get_health_summary(State(prober): State<Arc<HealthProber>>) -> Json<serde_json::Value> {
-    let summary = prober.summary();
-    Json(json!({
-        "totals": summary.into_iter()
-            .map(|(id, total)| json!({ "id": id, "total_bytes_sent": total }))
-            .collect::<Vec<_>>()
-    }))
+    Json(json!({ "totals": prober.summary() }))
 }
 
 pub fn router(state: Arc<HealthProber>) -> Router {

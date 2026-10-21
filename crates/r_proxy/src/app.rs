@@ -1,46 +1,43 @@
+use anyhow::Context;
 use outpost::Outpost;
 use proxy::Server;
+use tokio::sync::oneshot;
 
-#[derive(Default)]
 pub struct App {
-    outpost_handle: Option<tokio::task::JoinHandle<()>>,
-    proxy_handle : Option<tokio::task::JoinHandle<()>>,
-    ui_handle : Option<tokio::task::JoinHandle<()>>,
+    config_path: String,
 }
 
 impl App {
-    pub async fn start(&mut self) -> anyhow::Result<()> {
-        let mut server = Server::build("./test.toml").unwrap();
-        let prober = server.health_prober.clone();
-        let prober2 = server.health_prober.clone();
-        self.ui_handle = Some(tokio::task::spawn_blocking(|| {
-            ui::UI::run(prober2);
-        }));
-
-        self.proxy_handle = Some(tokio::spawn(async move{
-            server.start();
-        }));
-
-        self.outpost_handle = Some(tokio::spawn(async move {
-             Outpost::start(prober).await;
-        }));
-
-        Ok(())
+    pub fn new(config_path: String) -> App {
+        App { config_path }
     }
 
-    pub async fn run(&mut self) -> anyhow::Result<()> {
-        if let Some(handle) = self.outpost_handle.take() {
-            handle.await?;
-        }
-        if let Some(handle) = self.proxy_handle.take() {
-            handle.await?;
-        }
+    pub async fn run(&self) -> anyhow::Result<()> {
+        ui::UI::init_logging();
 
-        if let Some(handle) = self.ui_handle.take() {
-            handle.await?;
+        let mut server = Server::build(&self.config_path)?;
+        let outpost = Outpost::bind(server.outpost_address())
+            .await
+            .with_context(|| format!("failed to bind outpost on {}", server.outpost_address()))?;
+        server.start().await?;
+
+        let prober = server.health_prober.clone();
+        let (stop_outpost, outpost_stopped) = oneshot::channel::<()>();
+        let outpost_handle = tokio::spawn(outpost.serve(prober.clone(), async {
+            let _ = outpost_stopped.await;
+        }));
+
+        let ui_result = tokio::task::spawn_blocking(move || ui::UI::run(prober)).await;
+
+        let _ = stop_outpost.send(());
+        match outpost_handle.await {
+            Ok(Err(e)) => log::error!("outpost error: {e}"),
+            Err(e) => log::error!("outpost task failed: {e}"),
+            Ok(Ok(())) => {}
         }
+        server.shutdown().await?;
 
-
+        ui_result.context("UI task failed")?.context("UI error")?;
         Ok(())
     }
 }

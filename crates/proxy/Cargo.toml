@@ -10,3 +10,4 @@ anyhow = "1.0.104"
 chrono = { version = "0.4.45", features = ["serde"] }
 tokio = {  version = "1.53.1", features = ["full"] }
 log = "0.4.33"
+tokio-util = { version = "0.7.20", features = ["rt"] }

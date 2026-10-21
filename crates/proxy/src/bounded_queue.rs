@@ -17,7 +17,7 @@ impl<T> BoundedQueue<T> {
 
     #[inline]
     pub fn push(&mut self, value: T) {
-        if (self.is_full()) {
+        if self.is_full() {
             self.queue.pop_front();
         }
         self.queue.push_back(value);

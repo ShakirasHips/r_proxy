@@ -1,10 +1,9 @@
 use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    routing::{get, post},
+    extract::{Path, State},
+    routing::get,
     Json, Router,
 };
-use std::sync::{atomic::Ordering, Arc};
+use std::sync::Arc;
 use proxy::HealthProber;
 use serde_json::json;
 

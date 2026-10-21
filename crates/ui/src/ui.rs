@@ -10,11 +10,9 @@ use crossterm::terminal::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Gauge, Paragraph, Row, Table};
 use ratatui::{Frame, Terminal};
 
-use tracing_subscriber::EnvFilter;
 use tui_logger::{TuiLoggerWidget, TuiWidgetState};
 use proxy::HealthProber;
 

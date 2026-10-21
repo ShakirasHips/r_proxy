@@ -1,6 +1,6 @@
 use crate::bounded_queue::BoundedQueue;
 use chrono::{DateTime, Utc};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::sync::Mutex;
 use serde::Serialize;
 
@@ -33,14 +33,6 @@ impl HealthProber {
             .entry(data_point.id.clone())
             .or_insert_with(|| BoundedQueue::new(DATA_RECORD_LENGTH))
             .push(data_point);
-    }
-
-    pub fn print(&self) {
-        let data_points = self.data_points.lock().unwrap();
-        for (id, queue) in data_points.iter() {
-            let total: u64 = queue.iter().map(|dp| dp.bytes_sent as u64).sum();
-            println!("{}: {}", id, total);
-        }
     }
 
     pub fn get_points(&self, id: &str) -> Option<Vec<HealthDataPoint>> {

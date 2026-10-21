@@ -1,9 +1,8 @@
 use crate::config::Config;
 use crate::health_prober::HealthProber;
 use crate::proxy::Proxy;
-use anyhow::{Context, Ok, Result, ensure};
+use anyhow::{Context, Ok, Result};
 use std::sync::Arc;
-use tokio::io::{AsyncBufReadExt, BufReader};
 
 pub struct Server {
     config: Config,
